@@ -1,0 +1,37 @@
+Mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "root"
+  dbname: "yiliao"
+
+Redis:
+  addr: ""
+  password: ""
+  db: 0
+
+Es:
+  url: ""
+
+Sendsms:
+  account: ""
+  password: ""
+
+Qiniuyun:
+  ak: ""
+  sk: ""
+  bucket: ""
+  url: ""
+
+Alipay:
+  appid: ""
+  key: ""
+  url: ""
+
+Jwt:
+  APP_KEY: ""
+
+Services:
+
+  UsersServerAddr: "127.0.0.1:50051"
+
