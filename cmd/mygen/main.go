@@ -283,6 +283,11 @@ func generateProjectFiles(data ProjectData, outputDir string, tFS fs.FS) {
 		data,
 	)
 	processTemplate(tFS,
+		"bff/handler/api/notify.go.tmpl",
+		filepath.Join(outputDir, data.BffDirName, "handler", "api", "notify.go"),
+		data,
+	)
+	processTemplate(tFS,
 		"bff/handler/request/upload.go.tmpl",
 		filepath.Join(outputDir, data.BffDirName, "handler", "request", "upload.go"),
 		data,
@@ -369,6 +374,7 @@ func processTemplate(tFS fs.FS, srcTmpl, dstFile string, data interface{}) {
 
 	funcMap := template.FuncMap{
 		"add": func(a, b int) int { return a + b },
+		"bt":  func() string { return "`" },
 	}
 
 	tmpl, err := template.New(path.Base(srcTmpl)).Funcs(funcMap).Parse(string(tmplContent))

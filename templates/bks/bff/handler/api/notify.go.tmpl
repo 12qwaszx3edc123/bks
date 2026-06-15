@@ -1,0 +1,100 @@
+﻿package api
+
+import (
+	"fmt"
+	"strings"
+	"time"
+	"{{.AppName}}/common/config"
+	"{{.AppName}}/common/model"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm/clause"
+)
+
+func Notify(c *gin.Context) {
+	err := c.Request.ParseForm()
+	if err != nil {
+		fmt.Println("解析失败:", err)
+		c.String(200, "fail")
+		return
+	}
+	notifyMap := make(map[string]string)
+	for s, v := range c.Request.PostForm {
+		notifyMap[s] = v[0]
+	}
+	fmt.Println(notifyMap)
+	//map[app_id:9021000163634270 auth_app_id:9021000163634270 buyer_id:2088722101061190 buyer_logon_id:iqpefa9128@sandbox.com buyer_pay_amount:4000.00 charset:utf-8 fund_bill_list:[{"amount":"4000.00","fundChannel":"ALIPAYACCOUNT"}] gmt_create:2026-06-11 19:34:05 gmt_payment:2026-06-11 19:34:06 invoice_amount:4000.00 notify_id:2026061101222193406161190509728459 notify_time:2026-06-11 19:34:07 notify_type:trade_status_sync out_trade_no:do202606112821233 point_amount:0.00 receipt_amount:4000.00 seller_email:vxhjwl3583@sandbox.com seller_id:2088721101061188 sign:O8H2ca2JP2nguygS261RMU80ZNaCoR/1pJYKTHvCGUqN5CfJbdEG4woDpcCr3u1zMQlfiemuryonTfpzz6cz8OkXuAiAXRQr793NbwzmQICPRVqiTstdr1UY05JGJHe5Y2Y6EygEdmPbCst7/muY/wvL5bOhJQ9r33EhZOFt32RJa7K7/ylc67hdllZ/8pvvNRGACxJ4eQPv6x1s9EY68qlpGCO9dXPOAERARNtdR/JZPnq2jIdNTt1CxE3KpBBFncpJ7KF7tHGK+ID9/cXLZysKULoyKssqmqZKuofw6/9xjwzomjxT2oFMs9S/rp9j2fJeVC7ycbpKfYJ3Drm4Ig== sign_type:RSA2 subject:标题 total_amount:4000.00 trade_no:2026061122001461190509705227 trade_status:TRADE_SUCCESS version:1.0]
+	drugSn := notifyMap["out_trade_no"]
+	if drugSn == "" {
+		fmt.Println("订单号为空")
+		c.String(200, "fail")
+		return
+	}
+	if notifyMap["trade_status"] != "TRADE_SUCCESS" {
+		fmt.Println("支付失败,trade_status:", notifyMap["trade_status"])
+		c.String(200, "fail")
+		return
+	}
+	if strings.Contains(drugSn, "do") {
+		var drugorder model.DrugOrder
+		err = drugorder.FindDrugOrderByDrugSn(config.DB, drugSn)
+		if err != nil {
+			fmt.Println("预约单不存在")
+			c.String(200, "fail")
+			return
+		}
+		drugorder.Status = 2
+		drugorder.PayType = 2
+		err = drugorder.Save(config.DB)
+		if err != nil {
+			fmt.Println("预约状态更新失败")
+			c.String(200, "fail")
+			return
+		}
+		c.String(200, "success")
+		return
+	}
+}
+
+func HandlerExpireOrder() {
+	var order []model.DrugOrder
+	config.DB.Where("status = 1 AND expire<?", time.Now()).Find(&order)
+	if len(order) == 0 {
+		fmt.Println("暂无失效订单")
+		return
+	}
+	for _, o := range order {
+		tx := config.DB.Begin()
+		var items []model.OrderItem
+		if err := tx.Where("order_id = ?", o.ID).Find(&items).Error; err != nil {
+			tx.Rollback()
+			fmt.Println("订单明细获取失败:", err)
+			continue
+		}
+		for _, i := range items {
+			var drug model.Drug
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&drug, i.DrugId).Error; err != nil {
+				tx.Rollback()
+				fmt.Println("药品不存在:", i.DrugId)
+				continue
+			}
+			drug.DrugNum += i.Quantity
+			if err := tx.Save(&drug).Error; err != nil {
+				tx.Rollback()
+				fmt.Println("恢复库存失败:", err)
+				continue
+			}
+		}
+		o.Status = 3
+		if err := tx.Save(&order).Error; err != nil {
+			tx.Rollback()
+			fmt.Println("更新订单状态失败:", err)
+			continue
+		}
+		if err := tx.Commit().Error; err != nil {
+			fmt.Println("事务提交失败:", err)
+			continue
+		}
+		fmt.Printf("订单 %s 已取消，库存已恢复\n", o.DrugSn)
+	}
+}

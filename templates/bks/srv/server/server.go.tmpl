@@ -1,0 +1,22 @@
+﻿package server
+
+import (
+	"context"
+	"errors"
+
+	"{{.AppName}}/common/config"
+	"{{.AppName}}/common/model"
+	pb{{.Module.UpperName}} "{{.AppName}}/proto/{{.Module.LowerName}}"
+)
+
+type {{.Module.UpperName}}Service struct {
+	pb{{.Module.UpperName}}.Unimplemented{{.Module.UpperName}}Server
+}
+
+func (s *{{.Module.UpperName}}Service) {{.Module.UpperName}}Add(ctx context.Context, req *pb{{.Module.UpperName}}.{{.Module.UpperName}}AddReq) (resp *pb{{.Module.UpperName}}.{{.Module.UpperName}}AddResp, err error) {
+	m := model.{{.Module.UpperName}}{}
+	if err := m.{{.Module.UpperName}}Create(config.DB); err != nil {
+		return nil, errors.New("添加失败")
+	}
+	return &pb{{.Module.UpperName}}.{{.Module.UpperName}}AddResp{Id: int32(m.ID)}, nil
+}

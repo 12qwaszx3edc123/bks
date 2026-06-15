@@ -1,0 +1,19 @@
+﻿package request
+
+type {{.Module.UpperName}}Add struct {
+{{range .Module.Fields}}	{{.GoName}} {{.GoType}} {{bt}}form:"{{.ColumnName}}" json:"{{.ColumnName}}"{{bt}}
+{{end}}}
+
+type {{.Module.UpperName}}Upt struct {
+	Id int32 {{bt}}form:"id" json:"id"{{bt}}
+{{range .Module.Fields}}	{{.GoName}} {{.GoType}} {{bt}}form:"{{.ColumnName}}" json:"{{.ColumnName}}"{{bt}}
+{{end}}}
+
+type {{.Module.UpperName}}Del struct {
+	Id int32 {{bt}}form:"id" json:"id"{{bt}}
+}
+
+type {{.Module.UpperName}}List struct {
+	Page int32 {{bt}}form:"page" json:"page"{{bt}}
+	Size int32 {{bt}}form:"size" json:"size"{{bt}}
+}

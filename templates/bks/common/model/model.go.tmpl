@@ -1,0 +1,58 @@
+package model
+
+import (
+	"gorm.io/gorm"
+)
+
+type {{.Module.UpperName}} struct {
+	gorm.Model
+{{range .Module.Fields}}	{{.GoName}} {{.GoType}} {{bt}}gorm:"column:{{.ColumnName}}"{{bt}}
+{{end}}}
+
+func (u *{{.Module.UpperName}}) {{.Module.UpperName}}Create(db *gorm.DB) error {
+	return db.Create(u).Error
+}
+
+func (u *{{.Module.UpperName}}) {{.Module.UpperName}}Update(db *gorm.DB) error {
+	return db.Save(u).Error
+}
+
+func (u *{{.Module.UpperName}}) {{.Module.UpperName}}Delete(db *gorm.DB) error {
+	return db.Delete(u).Error
+}
+
+func (u *{{.Module.UpperName}}) {{.Module.UpperName}}Find(db *gorm.DB) error {
+	return db.First(u, u.ID).Error
+}
+
+type DrugOrder struct {
+	gorm.Model
+	DrugSn  string {{bt}}gorm:"type:varchar(64)"{{bt}}
+	Status  int    {{bt}}gorm:"type:int;default:1"{{bt}}
+	PayType int    {{bt}}gorm:"type:int"{{bt}}
+	Expire  string {{bt}}gorm:"type:varchar(32)"{{bt}}
+}
+
+func (d *DrugOrder) FindDrugOrderByDrugSn(db *gorm.DB, sn string) error {
+	return db.Where("drug_sn = ?", sn).First(d).Error
+}
+
+func (d *DrugOrder) Save(db *gorm.DB) error {
+	return db.Save(d).Error
+}
+
+type OrderItem struct {
+	gorm.Model
+	OrderId  uint {{bt}}gorm:"type:int"{{bt}}
+	DrugId   uint {{bt}}gorm:"type:int"{{bt}}
+	Quantity int  {{bt}}gorm:"type:int"{{bt}}
+}
+
+type Drug struct {
+	gorm.Model
+	DrugNum int {{bt}}gorm:"type:int"{{bt}}
+}
+
+func (d *Drug) Save(db *gorm.DB) error {
+	return db.Save(d).Error
+}
